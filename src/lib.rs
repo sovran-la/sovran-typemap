@@ -41,7 +41,7 @@
 //!     // Handle errors properly
 //!     match store.get::<bool>(&"nonexistent".to_string()) {
 //!         Ok(value) => println!("Value: {}", value),
-//!         Err(StoreError::KeyNotFound) => println!("Key doesn't exist"),
+//!         Err(StoreError::KeyNotFound(key)) => println!("Key ({}) doesn't exist", key),
 //!         Err(StoreError::TypeMismatch) => println!("Type doesn't match"),
 //!         Err(e) => println!("Other error: {}", e),
 //!     }

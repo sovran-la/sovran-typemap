@@ -73,7 +73,9 @@ fn main() -> Result<(), StoreError> {
     // Try accessing the removed value (should fail)
     match store.with(&"num1".to_string(), |_: &IntegerValue| {}) {
         Ok(_) => println!("This shouldn't happen - value 1 should be gone"),
-        Err(StoreError::KeyNotFound(key)) => println!("Correctly detected key ({}) was removed", key),
+        Err(StoreError::KeyNotFound(key)) => {
+            println!("Correctly detected key ({}) was removed", key)
+        }
         Err(e) => println!("Unexpected error: {}", e),
     }
 
