@@ -56,7 +56,7 @@ fn main() -> Result<(), StoreError> {
         println!("Dog named {} says: {}", dog.name, dog.make_sound());
     }) {
         Ok(_) => println!("Successfully accessed dog"),
-        Err(StoreError::KeyNotFound) => println!("Dog not found in store"),
+        Err(StoreError::KeyNotFound(key)) => println!("{} not found in store", key),
         Err(StoreError::TypeMismatch) => println!("Value is not a Dog"),
         Err(StoreError::LockError) => println!("Failed to acquire lock"),
     }
