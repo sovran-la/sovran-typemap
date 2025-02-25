@@ -39,6 +39,7 @@ use crate::error::StoreError;
 ///     Ok(())
 /// }
 /// ```
+#[derive(Clone, Debug)]
 pub struct TypeStore<K> {
     items: Arc<Mutex<HashMap<K, AnyValue>>>,
 }

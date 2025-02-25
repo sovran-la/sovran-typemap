@@ -1,6 +1,7 @@
 use std::any::{Any, TypeId};
 
 /// A container for type-erased values that preserves type information
+#[derive(Debug)]
 pub(crate) struct AnyValue {
     pub(crate) type_id: TypeId,
     pub(crate) value: Box<dyn Any + Send + Sync>,
