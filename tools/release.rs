@@ -88,6 +88,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::write("Cargo.toml", doc.to_string())?;
     println!("Updated Cargo.toml with new version: {}", new_version);
 
+    // Update Cargo.lock to match the new version
+    println!("Updating Cargo.lock...");
+    let status = Command::new("cargo").arg("check").status()?;
+    if !status.success() {
+        return Err("Failed to update Cargo.lock".into());
+    }
+
     // Get the latest tag for commit history
     let previous_tag = get_latest_tag()?;
     println!(
@@ -113,7 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Git commands
     let commands = [
-        ("git add Cargo.toml", "Failed to stage Cargo.toml"),
+        ("git add Cargo.toml Cargo.lock", "Failed to stage Cargo.toml"),
         (
             &format!("git commit -m \"Bump version to {}\"", new_version),
             "Failed to commit version bump",
