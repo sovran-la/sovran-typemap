@@ -12,9 +12,11 @@ A thread-safe, type-safe heterogeneous container library for Rust.
 
 - **Type-safe**: Values are checked at runtime to ensure type correctness
 - **Thread-safe**: Built on `Arc<Mutex<_>>` for safe concurrent access
-- **Ergonomic API**: Simple methods for storing, retrieving, and modifying values
-- **Flexible**: Supports any type that implements `Any + Send + Sync`
+- **Ergonomic API**: Simple methods with closures for storing, retrieving, and modifying values
+- **Flexible**: Supports any type that implements `Any + Send + Sync` with any hashable key type
+- **Comprehensive Error Handling**: Detailed error types for better debugging and recovery
 - **No macros**: Pure runtime solution without complex macro magic
+- **No Unsafe Code**: Relies entirely on safe Rust with no `unsafe` blocks
 
 ## Installation
 
@@ -22,7 +24,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-sovran-typemap = "0.1.0"
+sovran-typemap = "0.3"
 ```
 
 ## Basic Usage
