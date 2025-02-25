@@ -120,7 +120,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Git commands
     let commands = [
-        ("git add Cargo.toml Cargo.lock", "Failed to stage Cargo.toml"),
+        (
+            "git add Cargo.toml Cargo.lock",
+            "Failed to stage Cargo.toml",
+        ),
         (
             &format!("git commit -m \"Bump version to {}\"", new_version),
             "Failed to commit version bump",

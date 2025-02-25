@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use sovran_typemap::{StoreError, TypeStore};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 
@@ -203,7 +203,10 @@ fn test_error_display() {
 
     assert_eq!(format!("{}", lock_error), "Failed to acquire lock");
     assert_eq!(format!("{}", key_not_found), "Key not found in store");
-    assert_eq!(format!("{}", type_mismatch), "Type mismatch for the requested key");
+    assert_eq!(
+        format!("{}", type_mismatch),
+        "Type mismatch for the requested key"
+    );
 
     // Test Debug implementation
     assert!(format!("{:?}", lock_error).contains("LockError"));
@@ -230,15 +233,19 @@ fn test_set_with() {
     assert_eq!(data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
     // Test with a different type
-    store.set_with("config".to_string(), || {
-        let mut map = HashMap::new();
-        map.insert("key".to_string(), "value".to_string());
-        map
-    }).unwrap();
+    store
+        .set_with("config".to_string(), || {
+            let mut map = HashMap::new();
+            map.insert("key".to_string(), "value".to_string());
+            map
+        })
+        .unwrap();
 
-    let config = store.with(&"config".to_string(), |c: &HashMap<String, String>| {
-        c.get("key").cloned()
-    }).unwrap();
+    let config = store
+        .with(&"config".to_string(), |c: &HashMap<String, String>| {
+            c.get("key").cloned()
+        })
+        .unwrap();
 
     assert_eq!(config, Some("value".to_string()));
 }
