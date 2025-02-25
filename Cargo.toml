@@ -1,0 +1,20 @@
+[package]
+name = "sovran-typemap"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <support@sovran.la>"]
+description = "A thread-safe heterogeneous container with type-safety"
+license = "MIT"
+repository = "https://github.com/sovran-la/sovran-typemap"
+keywords = ["typemap", "heterogeneous", "container", "typesafe"]
+categories = ["data-structures", "rust-patterns"]
+
+[dependencies]
+toml_edit = "0.22"
+
+[dev-dependencies]
+chrono = "0.4" # Add this for release script
+
+[[bin]]
+name = "release"
+path = "tools/release.rs"
