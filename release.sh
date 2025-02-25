@@ -29,7 +29,7 @@ cargo clippy -- -D warnings
 
 # Run cargo fmt
 echo "Running fmt: '$> cargo fmt'"
-cargo test
+cargo fmt
 
 # Run all tests
 echo "Running tests: '$> cargo test'"
