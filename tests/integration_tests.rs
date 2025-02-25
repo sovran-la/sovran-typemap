@@ -143,7 +143,7 @@ fn test_error_handling() {
 
     // Try to get a non-existent key
     let result = store.with(&"nonexistent".to_string(), |val: &i32| *val);
-    assert!(matches!(result, Err(StoreError::KeyNotFound)));
+    assert!(matches!(result, Err(StoreError::KeyNotFound(_))));
 
     // Store a value and try to get it with the wrong type
     store.set("key".to_string(), 42i32).unwrap();
@@ -154,7 +154,7 @@ fn test_error_handling() {
     let result = store.with_mut(&"nonexistent".to_string(), |val: &mut i32| {
         *val = 100;
     });
-    assert!(matches!(result, Err(StoreError::KeyNotFound)));
+    assert!(matches!(result, Err(StoreError::KeyNotFound(_))));
 
     // Try to remove a non-existent key
     let removed = store.remove(&"nonexistent".to_string()).unwrap();
@@ -198,11 +198,14 @@ fn test_custom_key_types() {
 fn test_error_display() {
     // Test error.rs Display implementation
     let lock_error = StoreError::LockError;
-    let key_not_found = StoreError::KeyNotFound;
+    let key_not_found = StoreError::KeyNotFound("someKey".into());
     let type_mismatch = StoreError::TypeMismatch;
 
     assert_eq!(format!("{}", lock_error), "Failed to acquire lock");
-    assert_eq!(format!("{}", key_not_found), "Key not found in store");
+    assert_eq!(
+        format!("{}", key_not_found),
+        "Key not found in store: someKey"
+    );
     assert_eq!(
         format!("{}", type_mismatch),
         "Type mismatch for the requested key"

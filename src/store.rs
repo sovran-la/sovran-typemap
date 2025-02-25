@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 
@@ -46,7 +47,7 @@ pub struct TypeStore<K> {
 
 impl<K> TypeStore<K>
 where
-    K: Clone + Eq + Hash,
+    K: Clone + Eq + Hash + Debug,
 {
     /// Creates a new, empty TypeStore
     ///
@@ -191,7 +192,7 @@ where
     /// // Handle possible errors
     /// match store.get::<String>(&"non_existent".to_string()) {
     ///     Ok(value) => println!("Value: {}", value),
-    ///     Err(StoreError::KeyNotFound) => println!("Key not found"),
+    ///     Err(StoreError::KeyNotFound(key)) => println!("Key not found {}", key),
     ///     Err(StoreError::TypeMismatch) => println!("Type mismatch"),
     ///     Err(StoreError::LockError) => println!("Failed to acquire lock"),
     /// }
@@ -254,7 +255,7 @@ where
     /// }) {
     ///     Ok(Some(theme)) => println!("Current theme: {}", theme),
     ///     Ok(None) => println!("Theme setting not found"),
-    ///     Err(StoreError::KeyNotFound) => println!("Settings not initialized"),
+    ///     Err(StoreError::KeyNotFound(_)) => println!("Settings not initialized"),
     ///     Err(StoreError::TypeMismatch) => println!("Settings has unexpected type"),
     ///     Err(e) => println!("Error: {}", e),
     /// }
@@ -266,7 +267,9 @@ where
         F: FnOnce(&V) -> R,
     {
         let guard = self.items.lock().map_err(|_| StoreError::LockError)?;
-        let value = guard.get(key).ok_or(StoreError::KeyNotFound)?;
+        let value = guard
+            .get(key)
+            .ok_or_else(|| StoreError::KeyNotFound(format!("{:?}", key)))?;
 
         if !value.is_type::<V>() {
             return Err(StoreError::TypeMismatch);
@@ -333,7 +336,7 @@ where
     ///     config.insert("theme".to_string(), "dark".to_string())
     /// }) {
     ///     Ok(old_theme) => println!("Previous theme: {:?}", old_theme),
-    ///     Err(StoreError::KeyNotFound) => println!("Config not found"),
+    ///     Err(StoreError::KeyNotFound(_)) => println!("Config not found"),
     ///     Err(StoreError::TypeMismatch) => println!("Config has wrong type"),
     ///     Err(e) => println!("Error: {}", e),
     /// }
@@ -345,7 +348,9 @@ where
         F: FnOnce(&mut V) -> R,
     {
         let mut guard = self.items.lock().map_err(|_| StoreError::LockError)?;
-        let value = guard.get_mut(key).ok_or(StoreError::KeyNotFound)?;
+        let value = guard
+            .get_mut(key)
+            .ok_or_else(|| StoreError::KeyNotFound(format!("{:?}", key)))?;
 
         if !value.is_type::<V>() {
             return Err(StoreError::TypeMismatch);
@@ -381,7 +386,7 @@ where
     ///
     /// // Check that it's gone
     /// match store.get::<String>(&"temp".to_string()) {
-    ///     Err(StoreError::KeyNotFound) => println!("Key was successfully removed"),
+    ///     Err(StoreError::KeyNotFound(key)) => println!("Key `{}` was successfully removed", key),
     ///     Ok(_) => println!("Key still exists"),
     ///     Err(e) => println!("Error: {}", e),
     /// }
@@ -597,7 +602,7 @@ where
 
 impl<K> Default for TypeStore<K>
 where
-    K: Clone + Eq + Hash,
+    K: Clone + Eq + Hash + Debug,
 {
     fn default() -> Self {
         Self::new()
