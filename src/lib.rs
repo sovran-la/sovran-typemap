@@ -200,7 +200,7 @@
 //! // Try to get a value with the wrong type
 //! match store.get::<String>(&"config".to_string()) {
 //! Ok(value) => println!("Config: {}", value),
-//!     Err(StoreError::KeyNotFound) => println!("Config key not found"),
+//!     Err(StoreError::KeyNotFound(_)) => println!("Config key not found"),
 //!     Err(StoreError::TypeMismatch) => println!("Config is not a String"),
 //!     Err(StoreError::LockError) => println!("Failed to acquire lock"),
 //! }
@@ -208,7 +208,7 @@
 //! // Try to access a non-existent key
 //! match store.get::<i32>(&"settings".to_string()) {
 //!     Ok(value) => println!("Setting: {}", value),
-//!     Err(StoreError::KeyNotFound) => println!("Settings key not found"),
+//!     Err(StoreError::KeyNotFound(_)) => println!("Settings key not found"),
 //!     Err(e) => println!("Other error: {}", e),
 //! }
 //! ```
