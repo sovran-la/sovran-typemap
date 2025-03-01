@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use sovran_typemap::{MapError, TypeMapV};
 
 // Test trait for checking trait object storage
@@ -128,7 +127,7 @@ fn test_thread_safety() -> Result<(), MapError> {
 
     // Spawn thread that increments by 1s
     let handle = thread::spawn(move || -> Result<(), MapError> {
-        for i in 0..100 {
+        for _i in 0..100 {
             // Get current value and increment
             let current = store2.get(&"counter".to_string())?;
             store2.set("counter".to_string(), current + 1)?;
@@ -137,7 +136,7 @@ fn test_thread_safety() -> Result<(), MapError> {
     });
 
     // Main thread increments by 1s too
-    for i in 0..100 {
+    for _i in 0..100 {
         let current = store.get(&"counter".to_string())?;
         store.set("counter".to_string(), current + 1)?;
     }
