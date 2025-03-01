@@ -1,11 +1,11 @@
-use sovran_typemap::{StoreError, TypeStore};
+use sovran_typemap::{MapError, TypeMap};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 
 #[test]
 fn test_basic_operations() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Store a value
     store.set("key".to_string(), 42i32).unwrap();
@@ -56,14 +56,14 @@ fn test_basic_operations() {
 
 #[test]
 fn test_type_safety() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Store a string
     store.set("key".to_string(), "hello".to_string()).unwrap();
 
     // Try to get it as the wrong type
     let result = store.with(&"key".to_string(), |val: &i32| *val);
-    assert!(matches!(result, Err(StoreError::TypeMismatch)));
+    assert!(matches!(result, Err(MapError::TypeMismatch)));
 
     // Get it as the correct type
     let value = store
@@ -74,7 +74,7 @@ fn test_type_safety() {
 
 #[test]
 fn test_multiple_types() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Store different types
     store.set("int".to_string(), 42i32).unwrap();
@@ -105,7 +105,7 @@ fn test_multiple_types() {
 
 #[test]
 fn test_thread_safety() {
-    let store = Arc::new(TypeStore::<String>::new());
+    let store = Arc::new(TypeMap::<String>::new());
 
     // Store a value
     store.set("counter".to_string(), 0i32).unwrap();
@@ -139,22 +139,22 @@ fn test_thread_safety() {
 
 #[test]
 fn test_error_handling() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Try to get a non-existent key
     let result = store.with(&"nonexistent".to_string(), |val: &i32| *val);
-    assert!(matches!(result, Err(StoreError::KeyNotFound(_))));
+    assert!(matches!(result, Err(MapError::KeyNotFound(_))));
 
     // Store a value and try to get it with the wrong type
     store.set("key".to_string(), 42i32).unwrap();
     let result = store.with(&"key".to_string(), |val: &String| val.clone());
-    assert!(matches!(result, Err(StoreError::TypeMismatch)));
+    assert!(matches!(result, Err(MapError::TypeMismatch)));
 
     // Try to modify a non-existent key
     let result = store.with_mut(&"nonexistent".to_string(), |val: &mut i32| {
         *val = 100;
     });
-    assert!(matches!(result, Err(StoreError::KeyNotFound(_))));
+    assert!(matches!(result, Err(MapError::KeyNotFound(_))));
 
     // Try to remove a non-existent key
     let removed = store.remove(&"nonexistent".to_string()).unwrap();
@@ -163,7 +163,7 @@ fn test_error_handling() {
 
 #[test]
 fn test_empty_store_operations() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Check that the store is empty
     assert!(store.is_empty().unwrap());
@@ -177,7 +177,7 @@ fn test_empty_store_operations() {
 #[test]
 fn test_custom_key_types() {
     // Test with integer keys
-    let store: TypeStore<i32> = TypeStore::new();
+    let store: TypeMap<i32> = TypeMap::new();
 
     store.set(1, "one".to_string()).unwrap();
     store.set(2, "two".to_string()).unwrap();
@@ -186,7 +186,7 @@ fn test_custom_key_types() {
     assert_eq!(value, "one");
 
     // Test with tuple keys
-    let store: TypeStore<(i32, i32)> = TypeStore::new();
+    let store: TypeMap<(i32, i32)> = TypeMap::new();
 
     store.set((1, 2), "point".to_string()).unwrap();
 
@@ -197,9 +197,9 @@ fn test_custom_key_types() {
 #[test]
 fn test_error_display() {
     // Test error.rs Display implementation
-    let lock_error = StoreError::LockError;
-    let key_not_found = StoreError::KeyNotFound("someKey".into());
-    let type_mismatch = StoreError::TypeMismatch;
+    let lock_error = MapError::LockError;
+    let key_not_found = MapError::KeyNotFound("someKey".into());
+    let type_mismatch = MapError::TypeMismatch;
 
     assert_eq!(format!("{}", lock_error), "Failed to acquire lock");
     assert_eq!(
@@ -217,7 +217,7 @@ fn test_error_display() {
 
 #[test]
 fn test_set_with() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Test set_with functionality
     let result = store.set_with("expensive".to_string(), || {
@@ -255,7 +255,7 @@ fn test_set_with() {
 
 #[test]
 fn test_with_mut_type_mismatch() {
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Store a string
     store.set("key".to_string(), "value".to_string()).unwrap();
@@ -266,13 +266,13 @@ fn test_with_mut_type_mismatch() {
         panic!("Should not reach here");
     });
 
-    assert!(matches!(result, Err(StoreError::TypeMismatch)));
+    assert!(matches!(result, Err(MapError::TypeMismatch)));
 }
 
 #[test]
 fn test_default_implementation() {
     // Test the Default implementation
-    let store: TypeStore<String> = Default::default();
+    let store: TypeMap<String> = Default::default();
 
     // Verify it works like a new store
     assert!(store.is_empty().unwrap());

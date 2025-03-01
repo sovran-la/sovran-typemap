@@ -1,4 +1,4 @@
-use sovran_typemap::{StoreError, TypeStore};
+use sovran_typemap::{MapError, TypeMap};
 
 // Example trait: Animal
 trait Animal {
@@ -25,9 +25,9 @@ impl Animal for Cat {
     }
 }
 
-fn main() -> Result<(), StoreError> {
+fn main() -> Result<(), MapError> {
     // Create a store
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Store different animal types
     store.set(
@@ -56,9 +56,9 @@ fn main() -> Result<(), StoreError> {
         println!("Dog named {} says: {}", dog.name, dog.make_sound());
     }) {
         Ok(_) => println!("Successfully accessed dog"),
-        Err(StoreError::KeyNotFound(key)) => println!("{} not found in store", key),
-        Err(StoreError::TypeMismatch) => println!("Value is not a Dog"),
-        Err(StoreError::LockError) => println!("Failed to acquire lock"),
+        Err(MapError::KeyNotFound(key)) => println!("{} not found in store", key),
+        Err(MapError::TypeMismatch) => println!("Value is not a Dog"),
+        Err(MapError::LockError) => println!("Failed to acquire lock"),
     }
 
     // Alternative pattern using if let for concise code
@@ -83,7 +83,7 @@ fn main() -> Result<(), StoreError> {
         // This should fail with TypeMismatch
     }) {
         Ok(_) => println!("This shouldn't happen"),
-        Err(StoreError::TypeMismatch) => println!("Correctly detected type mismatch"),
+        Err(MapError::TypeMismatch) => println!("Correctly detected type mismatch"),
         Err(e) => println!("Unexpected error: {}", e),
     }
 

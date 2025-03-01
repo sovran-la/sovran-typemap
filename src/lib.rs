@@ -20,11 +20,11 @@
 //! ### Basic Usage
 //!
 //! ```rust
-//! use sovran_typemap::{TypeStore, StoreError};
+//! use sovran_typemap::{TypeMap, MapError};
 //!
-//! fn main() -> Result<(), StoreError> {
+//! fn main() -> Result<(), MapError> {
 //!     // Create a new store with string keys
-//!     let store = TypeStore::<String>::new();
+//!     let store = TypeMap::<String>::new();
 //!
 //!     // Store values of different types
 //!     store.set("number".to_string(), 42i32)?;
@@ -41,8 +41,8 @@
 //!     // Handle errors properly
 //!     match store.get::<bool>(&"nonexistent".to_string()) {
 //!         Ok(value) => println!("Value: {}", value),
-//!         Err(StoreError::KeyNotFound(key)) => println!("Key ({}) doesn't exist", key),
-//!         Err(StoreError::TypeMismatch) => println!("Type doesn't match"),
+//!         Err(MapError::KeyNotFound(key)) => println!("Key ({}) doesn't exist", key),
+//!         Err(MapError::TypeMismatch) => println!("Type doesn't match"),
 //!         Err(e) => println!("Other error: {}", e),
 //!     }
 //!
@@ -53,11 +53,11 @@
 //! ### Using with_mut to Modify Values In-Place
 //!
 //! ```rust
-//! use sovran_typemap::{TypeStore, StoreError};
+//! use sovran_typemap::{TypeMap, MapError};
 //! use std::collections::HashMap;
 //!
-//! fn main() -> Result<(), StoreError> {
-//!     let store = TypeStore::<String>::new();
+//! fn main() -> Result<(), MapError> {
+//!     let store = TypeMap::<String>::new();
 //!
 //!     // Initialize a counter map
 //!     let mut counters = HashMap::new();
@@ -89,30 +89,30 @@
 //! ### Sharing State Between Components
 //!
 //! ```rust,no_run
-//! use sovran_typemap::{TypeStore, StoreError};
+//! use sovran_typemap::{TypeMap, MapError};
 //! use std::sync::Arc;
 //! use std::time::{SystemTime, UNIX_EPOCH};
 //!
 //! struct UserService {
-//!     store: Arc<TypeStore<String>>,
+//!     store: Arc<TypeMap<String>>,
 //! }
 //!
 //! struct LogService {
-//!     store: Arc<TypeStore<String>>,
+//!     store: Arc<TypeMap<String>>,
 //! }
 //!
 //! impl UserService {
-//!     fn new(store: Arc<TypeStore<String>>) -> Self {
+//!     fn new(store: Arc<TypeMap<String>>) -> Self {
 //!         Self { store }
 //!     }
 //!
-//!     fn get_user_count(&self) -> Result<usize, StoreError> {
+//!     fn get_user_count(&self) -> Result<usize, MapError> {
 //!         self.store.with(&"users".to_string(), |users: &Vec<String>| {
 //!             users.len()
 //!         })
 //!     }
 //!
-//!     fn add_user(&self, username: String) -> Result<(), StoreError> {
+//!     fn add_user(&self, username: String) -> Result<(), MapError> {
 //!         // Initialize users vector if it doesn't exist yet
 //!         if !self.store.contains_key(&"users".to_string())? {
 //!             self.store.set("users".to_string(), Vec::<String>::new())?;
@@ -126,11 +126,11 @@
 //! }
 //!
 //! impl LogService {
-//!     fn new(store: Arc<TypeStore<String>>) -> Self {
+//!     fn new(store: Arc<TypeMap<String>>) -> Self {
 //!         Self { store }
 //!     }
 //!
-//!     fn log(&self, message: String) -> Result<(), StoreError> {
+//!     fn log(&self, message: String) -> Result<(), MapError> {
 //!         // Initialize logs if they don't exist
 //!         if !self.store.contains_key(&"logs".to_string())? {
 //!             self.store.set("logs".to_string(), Vec::<String>::new())?;
@@ -146,7 +146,7 @@
 //!         })
 //!     }
 //!
-//!     fn get_recent_logs(&self, count: usize) -> Result<Vec<String>, StoreError> {
+//!     fn get_recent_logs(&self, count: usize) -> Result<Vec<String>, MapError> {
 //!         self.store.with(&"logs".to_string(), |logs: &Vec<String>| {
 //!             logs.iter()
 //!                .rev()
@@ -157,9 +157,9 @@
 //!     }
 //! }
 //!
-//! fn main() -> Result<(), StoreError> {
+//! fn main() -> Result<(), MapError> {
 //!     // Create a shared store
-//!     let store = Arc::new(TypeStore::<String>::new());
+//!     let store = Arc::new(TypeMap::<String>::new());
 //!
 //!     // Create services that share the store
 //!     let user_service = UserService::new(Arc::clone(&store));
@@ -187,9 +187,9 @@
 //! ### Error Handling
 //!
 //! ```rust
-//! use sovran_typemap::{TypeStore, StoreError};
+//! use sovran_typemap::{TypeMap, MapError};
 //!
-//! let store = TypeStore::<String>::new();
+//! let store = TypeMap::<String>::new();
 //!
 //! // Set a value for demonstration
 //! if let Err(e) = store.set("config".to_string(), vec!["setting1", "setting2"]) {
@@ -200,25 +200,27 @@
 //! // Try to get a value with the wrong type
 //! match store.get::<String>(&"config".to_string()) {
 //! Ok(value) => println!("Config: {}", value),
-//!     Err(StoreError::KeyNotFound(_)) => println!("Config key not found"),
-//!     Err(StoreError::TypeMismatch) => println!("Config is not a String"),
-//!     Err(StoreError::LockError) => println!("Failed to acquire lock"),
+//!     Err(MapError::KeyNotFound(_)) => println!("Config key not found"),
+//!     Err(MapError::TypeMismatch) => println!("Config is not a String"),
+//!     Err(MapError::LockError) => println!("Failed to acquire lock"),
 //! }
 //!
 //! // Try to access a non-existent key
 //! match store.get::<i32>(&"settings".to_string()) {
 //!     Ok(value) => println!("Setting: {}", value),
-//!     Err(StoreError::KeyNotFound(_)) => println!("Settings key not found"),
+//!     Err(MapError::KeyNotFound(_)) => println!("Settings key not found"),
 //!     Err(e) => println!("Other error: {}", e),
 //! }
 //! ```
 
 mod any_value;
 mod error;
-mod store;
+mod map;
+mod typed;
 
-pub use error::StoreError;
-pub use store::TypeStore;
+pub use error::MapError;
+pub use map::TypeMap;
+pub use typed::TypeMapV;
 
 // Re-export std::any for convenience
 pub use std::any::{Any, TypeId};

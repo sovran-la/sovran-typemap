@@ -1,4 +1,4 @@
-use sovran_typemap::{StoreError, TypeStore};
+use sovran_typemap::{MapError, TypeMap};
 
 // Example trait: ThreadSafeNumber
 trait ThreadSafeNumber {
@@ -32,9 +32,9 @@ impl ThreadSafeNumber for DoubledValue {
     }
 }
 
-fn main() -> Result<(), StoreError> {
+fn main() -> Result<(), MapError> {
     // Create a store
-    let store: TypeStore<String> = TypeStore::new();
+    let store: TypeMap<String> = TypeMap::new();
 
     // Store numbers with proper error handling
     store.set("num1".to_string(), IntegerValue { value: 42 })?;
@@ -73,7 +73,7 @@ fn main() -> Result<(), StoreError> {
     // Try accessing the removed value (should fail)
     match store.with(&"num1".to_string(), |_: &IntegerValue| {}) {
         Ok(_) => println!("This shouldn't happen - value 1 should be gone"),
-        Err(StoreError::KeyNotFound(key)) => {
+        Err(MapError::KeyNotFound(key)) => {
             println!("Correctly detected key ({}) was removed", key)
         }
         Err(e) => println!("Unexpected error: {}", e),

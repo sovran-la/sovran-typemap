@@ -5,22 +5,22 @@ use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 
 use crate::any_value::AnyValue;
-use crate::error::StoreError;
+use crate::error::MapError;
 
 /// A thread-safe heterogeneous container with type-safety
 ///
-/// `TypeStore` allows you to store values of different types in a single container
+/// `TypeMap` allows you to store values of different types in a single container
 /// while maintaining type-safety through runtime checks. It provides a convenient way
 /// to share state between components without requiring all components to know about all types.
 ///
 /// # Examples
 ///
 /// ```
-/// use sovran_typemap::{TypeStore, StoreError};
+/// use sovran_typemap::{TypeMap, MapError};
 ///
-/// fn main() -> Result<(), StoreError> {
-///     // Create a new TypeStore with string keys
-///     let store = TypeStore::<String>::new();
+/// fn main() -> Result<(), MapError> {
+///     // Create a new TypeMap with string keys
+///     let store = TypeMap::<String>::new();
 ///
 ///     // Store values of different types
 ///     store.set("number".to_string(), 42i32)?;
@@ -41,26 +41,26 @@ use crate::error::StoreError;
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct TypeStore<K> {
+pub struct TypeMap<K> {
     items: Arc<Mutex<HashMap<K, AnyValue>>>,
 }
 
-impl<K> TypeStore<K>
+impl<K> TypeMap<K>
 where
     K: Clone + Eq + Hash + Debug,
 {
-    /// Creates a new, empty TypeStore
+    /// Creates a new, empty TypeMap
     ///
     /// # Examples
     ///
     /// ```
-    /// use sovran_typemap::TypeStore;
+    /// use sovran_typemap::TypeMap;
     ///
-    /// // Create a TypeStore with String keys
-    /// let string_store = TypeStore::<String>::new();
+    /// // Create a TypeMap with String keys
+    /// let string_store = TypeMap::<String>::new();
     ///
-    /// // Create a TypeStore with numeric keys
-    /// let int_store = TypeStore::<u32>::new();
+    /// // Create a TypeMap with numeric keys
+    /// let int_store = TypeMap::<u32>::new();
     /// ```
     pub fn new() -> Self {
         Self {
@@ -72,14 +72,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     ///
     /// // Store values of different types
     /// store.set("number".to_string(), 42i32)?;
@@ -91,11 +91,11 @@ where
     /// # Ok(())
     /// # }
     /// ```
-    pub fn set<V>(&self, key: K, value: V) -> Result<(), StoreError>
+    pub fn set<V>(&self, key: K, value: V) -> Result<(), MapError>
     where
         V: 'static + Any + Send + Sync,
     {
-        let mut store = self.items.lock().map_err(|_| StoreError::LockError)?;
+        let mut store = self.items.lock().map_err(|_| MapError::LockError)?;
         store.insert(key, AnyValue::new(value));
         Ok(())
     }
@@ -107,14 +107,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     ///
     /// // Lazily construct a complex value
     /// store.set_with("user_data".to_string(), || {
@@ -137,9 +137,9 @@ where
     /// Handling potential errors:
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
+    /// # use sovran_typemap::{TypeMap, MapError};
     /// # fn main() {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// let store: TypeMap<String> = TypeMap::new();
     ///
     /// // Handle potential errors from set_with
     /// match store.set_with("config".to_string(), || {
@@ -147,12 +147,12 @@ where
     ///     std::collections::HashMap::<String, String>::new()
     /// }) {
     ///     Ok(()) => println!("Configuration stored successfully"),
-    ///     Err(StoreError::LockError) => eprintln!("Failed to acquire lock - try again later"),
+    ///     Err(MapError::LockError) => eprintln!("Failed to acquire lock - try again later"),
     ///     Err(e) => eprintln!("Unexpected error: {}", e),
     /// }
     /// # }
     /// ```
-    pub fn set_with<V, F>(&self, key: K, f: F) -> Result<(), StoreError>
+    pub fn set_with<V, F>(&self, key: K, f: F) -> Result<(), MapError>
     where
         V: 'static + Any + Send + Sync,
         F: FnOnce() -> V,
@@ -173,16 +173,16 @@ where
     ///
     /// # Errors
     ///
-    /// - Returns `StoreError::LockError` if the internal lock cannot be acquired
-    /// - Returns `StoreError::KeyNotFound` if the key doesn't exist in the store
-    /// - Returns `StoreError::TypeMismatch` if the value exists but has a different type
+    /// - Returns `MapError::LockError` if the internal lock cannot be acquired
+    /// - Returns `MapError::KeyNotFound` if the key doesn't exist in the store
+    /// - Returns `MapError::TypeMismatch` if the value exists but has a different type
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     /// store.set("answer".to_string(), 42i32)?;
     ///
     /// // Get a clone of the value
@@ -192,22 +192,22 @@ where
     /// // Handle possible errors
     /// match store.get::<String>(&"non_existent".to_string()) {
     ///     Ok(value) => println!("Value: {}", value),
-    ///     Err(StoreError::KeyNotFound(key)) => println!("Key not found {}", key),
-    ///     Err(StoreError::TypeMismatch) => println!("Type mismatch"),
-    ///     Err(StoreError::LockError) => println!("Failed to acquire lock"),
+    ///     Err(MapError::KeyNotFound(key)) => println!("Key not found {}", key),
+    ///     Err(MapError::TypeMismatch) => println!("Type mismatch"),
+    ///     Err(MapError::LockError) => println!("Failed to acquire lock"),
     /// }
     ///
     /// // Type mismatch example
     /// store.set("name".to_string(), "Alice".to_string())?;
     /// match store.get::<i32>(&"name".to_string()) {
     ///     Ok(value) => println!("Value: {}", value),
-    ///     Err(StoreError::TypeMismatch) => println!("The value is not an i32"),
+    ///     Err(MapError::TypeMismatch) => println!("The value is not an i32"),
     ///     Err(e) => println!("Other error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get<V>(&self, key: &K) -> Result<V, StoreError>
+    pub fn get<V>(&self, key: &K) -> Result<V, MapError>
     where
         V: 'static + Clone,
     {
@@ -228,16 +228,16 @@ where
     ///
     /// # Errors
     ///
-    /// - Returns `StoreError::LockError` if the internal lock cannot be acquired
-    /// - Returns `StoreError::KeyNotFound` if the key doesn't exist in the store
-    /// - Returns `StoreError::TypeMismatch` if the value exists but has a different type
+    /// - Returns `MapError::LockError` if the internal lock cannot be acquired
+    /// - Returns `MapError::KeyNotFound` if the key doesn't exist in the store
+    /// - Returns `MapError::TypeMismatch` if the value exists but has a different type
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     /// store.set("users".to_string(), vec!["Alice", "Bob", "Charlie"])?;
     ///
     /// // Read and compute something from the value
@@ -255,24 +255,24 @@ where
     /// }) {
     ///     Ok(Some(theme)) => println!("Current theme: {}", theme),
     ///     Ok(None) => println!("Theme setting not found"),
-    ///     Err(StoreError::KeyNotFound(_)) => println!("Settings not initialized"),
-    ///     Err(StoreError::TypeMismatch) => println!("Settings has unexpected type"),
+    ///     Err(MapError::KeyNotFound(_)) => println!("Settings not initialized"),
+    ///     Err(MapError::TypeMismatch) => println!("Settings has unexpected type"),
     ///     Err(e) => println!("Error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn with<V: 'static, F, R>(&self, key: &K, f: F) -> Result<R, StoreError>
+    pub fn with<V: 'static, F, R>(&self, key: &K, f: F) -> Result<R, MapError>
     where
         F: FnOnce(&V) -> R,
     {
-        let guard = self.items.lock().map_err(|_| StoreError::LockError)?;
+        let guard = self.items.lock().map_err(|_| MapError::LockError)?;
         let value = guard
             .get(key)
-            .ok_or_else(|| StoreError::KeyNotFound(format!("{:?}", key)))?;
+            .ok_or_else(|| MapError::KeyNotFound(format!("{:?}", key)))?;
 
         if !value.is_type::<V>() {
-            return Err(StoreError::TypeMismatch);
+            return Err(MapError::TypeMismatch);
         }
 
         // This is safe because we've checked the type
@@ -294,16 +294,16 @@ where
     ///
     /// # Errors
     ///
-    /// - Returns `StoreError::LockError` if the internal lock cannot be acquired
-    /// - Returns `StoreError::KeyNotFound` if the key doesn't exist in the store
-    /// - Returns `StoreError::TypeMismatch` if the value exists but has a different type
+    /// - Returns `MapError::LockError` if the internal lock cannot be acquired
+    /// - Returns `MapError::KeyNotFound` if the key doesn't exist in the store
+    /// - Returns `MapError::TypeMismatch` if the value exists but has a different type
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     ///
     /// // Initialize a vector
     /// store.set("numbers".to_string(), vec![1, 2, 3])?;
@@ -336,24 +336,24 @@ where
     ///     config.insert("theme".to_string(), "dark".to_string())
     /// }) {
     ///     Ok(old_theme) => println!("Previous theme: {:?}", old_theme),
-    ///     Err(StoreError::KeyNotFound(_)) => println!("Config not found"),
-    ///     Err(StoreError::TypeMismatch) => println!("Config has wrong type"),
+    ///     Err(MapError::KeyNotFound(_)) => println!("Config not found"),
+    ///     Err(MapError::TypeMismatch) => println!("Config has wrong type"),
     ///     Err(e) => println!("Error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn with_mut<V: 'static, F, R>(&self, key: &K, f: F) -> Result<R, StoreError>
+    pub fn with_mut<V: 'static, F, R>(&self, key: &K, f: F) -> Result<R, MapError>
     where
         F: FnOnce(&mut V) -> R,
     {
-        let mut guard = self.items.lock().map_err(|_| StoreError::LockError)?;
+        let mut guard = self.items.lock().map_err(|_| MapError::LockError)?;
         let value = guard
             .get_mut(key)
-            .ok_or_else(|| StoreError::KeyNotFound(format!("{:?}", key)))?;
+            .ok_or_else(|| MapError::KeyNotFound(format!("{:?}", key)))?;
 
         if !value.is_type::<V>() {
-            return Err(StoreError::TypeMismatch);
+            return Err(MapError::TypeMismatch);
         }
 
         // This is safe because we've checked the type
@@ -365,7 +365,7 @@ where
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Returns
     ///
@@ -375,9 +375,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     /// store.set("temp".to_string(), "This is temporary".to_string())?;
     ///
     /// // Remove the value
@@ -386,7 +386,7 @@ where
     ///
     /// // Check that it's gone
     /// match store.get::<String>(&"temp".to_string()) {
-    ///     Err(StoreError::KeyNotFound(key)) => println!("Key `{}` was successfully removed", key),
+    ///     Err(MapError::KeyNotFound(key)) => println!("Key `{}` was successfully removed", key),
     ///     Ok(_) => println!("Key still exists"),
     ///     Err(e) => println!("Error: {}", e),
     /// }
@@ -399,14 +399,14 @@ where
     /// match store.remove(&"another_key".to_string()) {
     ///     Ok(true) => println!("Key was found and removed"),
     ///     Ok(false) => println!("Key did not exist"),
-    ///     Err(StoreError::LockError) => println!("Failed to acquire lock"),
+    ///     Err(MapError::LockError) => println!("Failed to acquire lock"),
     ///     Err(e) => println!("Unexpected error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn remove(&self, key: &K) -> Result<bool, StoreError> {
-        let mut store = self.items.lock().map_err(|_| StoreError::LockError)?;
+    pub fn remove(&self, key: &K) -> Result<bool, MapError> {
+        let mut store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.remove(key).is_some())
     }
 
@@ -417,14 +417,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     /// store.set("config".to_string(), std::collections::HashMap::<String, String>::new())?;
     ///
     /// // Check if a key exists
@@ -449,8 +449,8 @@ where
     /// # Ok(())
     /// # }
     /// ```
-    pub fn contains_key(&self, key: &K) -> Result<bool, StoreError> {
-        let store = self.items.lock().map_err(|_| StoreError::LockError)?;
+    pub fn contains_key(&self, key: &K) -> Result<bool, MapError> {
+        let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.contains_key(key))
     }
 
@@ -458,14 +458,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     /// store.set("user".to_string(), "Alice".to_string())?;
     /// store.set("count".to_string(), 42i32)?;
     /// store.set("active".to_string(), true)?;
@@ -497,32 +497,51 @@ where
     /// // Error handling
     /// match store.keys() {
     ///     Ok(keys) => println!("Found {} keys", keys.len()),
-    ///     Err(StoreError::LockError) => println!("Failed to acquire lock"),
+    ///     Err(MapError::LockError) => println!("Failed to acquire lock"),
     ///     Err(e) => println!("Unexpected error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn keys(&self) -> Result<Vec<K>, StoreError>
+    pub fn keys(&self) -> Result<Vec<K>, MapError>
     where
         K: Clone,
     {
-        let store = self.items.lock().map_err(|_| StoreError::LockError)?;
+        let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.keys().cloned().collect())
+    }
+
+    pub fn values<V>(&self) -> Result<Vec<V>, MapError>
+    where
+        V: 'static + Clone,
+    {
+        let store = self.items.lock().map_err(|_| MapError::LockError)?;
+        let mut result = Vec::new();
+
+        for value in store.values() {
+            if value.is_type::<V>() {
+                // This is safe because we've checked the type
+                if let Some(v) = value.downcast_ref::<V>() {
+                    result.push(v.clone());
+                }
+            }
+        }
+
+        Ok(result)
     }
 
     /// Gets the number of items in the store
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     ///
     /// // Initially empty
     /// assert_eq!(store.len()?, 0);
@@ -544,14 +563,14 @@ where
     /// // Error handling
     /// match store.len() {
     ///     Ok(count) => println!("Store contains {} items", count),
-    ///     Err(StoreError::LockError) => println!("Failed to acquire lock"),
+    ///     Err(MapError::LockError) => println!("Failed to acquire lock"),
     ///     Err(e) => println!("Unexpected error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn len(&self) -> Result<usize, StoreError> {
-        let store = self.items.lock().map_err(|_| StoreError::LockError)?;
+    pub fn len(&self) -> Result<usize, MapError> {
+        let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.len())
     }
 
@@ -559,14 +578,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns `StoreError::LockError` if the internal lock cannot be acquired.
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use sovran_typemap::{TypeStore, StoreError};
-    /// # fn main() -> Result<(), StoreError> {
-    /// let store: TypeStore<String> = TypeStore::new();
+    /// # use sovran_typemap::{TypeMap, MapError};
+    /// # fn main() -> Result<(), MapError> {
+    /// let store: TypeMap<String> = TypeMap::new();
     ///
     /// // New store is empty
     /// assert!(store.is_empty()?);
@@ -588,19 +607,19 @@ where
     /// match store.is_empty() {
     ///     Ok(true) => println!("Store is empty"),
     ///     Ok(false) => println!("Store has items"),
-    ///     Err(StoreError::LockError) => println!("Failed to acquire lock"),
+    ///     Err(MapError::LockError) => println!("Failed to acquire lock"),
     ///     Err(e) => println!("Unexpected error: {}", e),
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn is_empty(&self) -> Result<bool, StoreError> {
-        let store = self.items.lock().map_err(|_| StoreError::LockError)?;
+    pub fn is_empty(&self) -> Result<bool, MapError> {
+        let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.is_empty())
     }
 }
 
-impl<K> Default for TypeStore<K>
+impl<K> Default for TypeMap<K>
 where
     K: Clone + Eq + Hash + Debug,
 {

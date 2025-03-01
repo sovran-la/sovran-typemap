@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
-use sovran_typemap::{StoreError, TypeStore};
+use sovran_typemap::{MapError, TypeMap};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Demonstrates using TypeStore for managing application state
-fn main() -> Result<(), StoreError> {
+/// Demonstrates using TypeMap for managing application state
+fn main() -> Result<(), MapError> {
     // Create our application state store
-    let app_state = Arc::new(TypeStore::<String>::new());
+    let app_state = Arc::new(TypeMap::<String>::new());
 
     // Initialize different parts of the application state
     initialize_app_state(&app_state)?;
@@ -64,7 +64,7 @@ fn main() -> Result<(), StoreError> {
 }
 
 /// Initialize all required application state
-fn initialize_app_state(store: &TypeStore<String>) -> Result<(), StoreError> {
+fn initialize_app_state(store: &TypeMap<String>) -> Result<(), MapError> {
     // Initialize users collection
     store.set("users".to_string(), Vec::<User>::new())?;
 
@@ -86,7 +86,7 @@ fn initialize_app_state(store: &TypeStore<String>) -> Result<(), StoreError> {
 }
 
 /// Print the current application state
-fn print_app_state(store: &TypeStore<String>) -> Result<(), StoreError> {
+fn print_app_state(store: &TypeMap<String>) -> Result<(), MapError> {
     println!("APPLICATION STATE:");
     println!("=================");
 
@@ -146,15 +146,15 @@ struct User {
 // Application modules
 
 struct UserModule {
-    store: Arc<TypeStore<String>>,
+    store: Arc<TypeMap<String>>,
 }
 
 impl UserModule {
-    fn new(store: Arc<TypeStore<String>>) -> Self {
+    fn new(store: Arc<TypeMap<String>>) -> Self {
         Self { store }
     }
 
-    fn add_user(&self, user: User) -> Result<(), StoreError> {
+    fn add_user(&self, user: User) -> Result<(), MapError> {
         self.store
             .with_mut(&"users".to_string(), |users: &mut Vec<User>| {
                 // Check if user already exists
@@ -168,13 +168,13 @@ impl UserModule {
             })
     }
 
-    fn get_user_by_id(&self, id: u64) -> Result<Option<User>, StoreError> {
+    fn get_user_by_id(&self, id: u64) -> Result<Option<User>, MapError> {
         self.store.with(&"users".to_string(), |users: &Vec<User>| {
             users.iter().find(|u| u.id == id).cloned()
         })
     }
 
-    fn deactivate_user(&self, id: u64) -> Result<bool, StoreError> {
+    fn deactivate_user(&self, id: u64) -> Result<bool, MapError> {
         self.store
             .with_mut(&"users".to_string(), |users: &mut Vec<User>| {
                 if let Some(user) = users.iter_mut().find(|u| u.id == id) {
@@ -188,22 +188,22 @@ impl UserModule {
 }
 
 struct ConfigModule {
-    store: Arc<TypeStore<String>>,
+    store: Arc<TypeMap<String>>,
 }
 
 impl ConfigModule {
-    fn new(store: Arc<TypeStore<String>>) -> Self {
+    fn new(store: Arc<TypeMap<String>>) -> Self {
         Self { store }
     }
 
-    fn get_config(&self, key: &str) -> Result<Option<String>, StoreError> {
+    fn get_config(&self, key: &str) -> Result<Option<String>, MapError> {
         self.store
             .with(&"config".to_string(), |config: &HashMap<String, String>| {
                 config.get(key).cloned()
             })
     }
 
-    fn set_theme(&self, theme: String) -> Result<(), StoreError> {
+    fn set_theme(&self, theme: String) -> Result<(), MapError> {
         self.store.with_mut(
             &"config".to_string(),
             |config: &mut HashMap<String, String>| {
@@ -212,7 +212,7 @@ impl ConfigModule {
         )
     }
 
-    fn set_language(&self, language: String) -> Result<(), StoreError> {
+    fn set_language(&self, language: String) -> Result<(), MapError> {
         self.store.with_mut(
             &"config".to_string(),
             |config: &mut HashMap<String, String>| {
@@ -223,15 +223,15 @@ impl ConfigModule {
 }
 
 struct StatsModule {
-    store: Arc<TypeStore<String>>,
+    store: Arc<TypeMap<String>>,
 }
 
 impl StatsModule {
-    fn new(store: Arc<TypeStore<String>>) -> Self {
+    fn new(store: Arc<TypeMap<String>>) -> Self {
         Self { store }
     }
 
-    fn record_page_view(&self, page: String) -> Result<(), StoreError> {
+    fn record_page_view(&self, page: String) -> Result<(), MapError> {
         self.store.with_mut(
             &"page_views".to_string(),
             |views: &mut HashMap<String, u32>| {
@@ -240,14 +240,14 @@ impl StatsModule {
         )
     }
 
-    fn get_total_views(&self) -> Result<u32, StoreError> {
+    fn get_total_views(&self) -> Result<u32, MapError> {
         self.store
             .with(&"page_views".to_string(), |views: &HashMap<String, u32>| {
                 views.values().sum()
             })
     }
 
-    fn get_page_views(&self, page: &str) -> Result<u32, StoreError> {
+    fn get_page_views(&self, page: &str) -> Result<u32, MapError> {
         self.store
             .with(&"page_views".to_string(), |views: &HashMap<String, u32>| {
                 views.get(page).copied().unwrap_or(0)
