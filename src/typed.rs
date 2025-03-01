@@ -1,8 +1,8 @@
+use crate::error::MapError;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
-use crate::error::MapError;
 
 /// A thread-safe map that stores values of a specific type
 ///
@@ -32,15 +32,15 @@ use crate::error::MapError;
 pub struct TypeMapV<K, V>
 where
     K: Clone + Eq + Hash + Debug,
-    V: Send + Sync
+    V: Send + Sync,
 {
-    items: Arc<Mutex<HashMap<K, V>>>
+    items: Arc<Mutex<HashMap<K, V>>>,
 }
 
 impl<K, V> TypeMapV<K, V>
 where
     K: Clone + Eq + Hash + Debug,
-    V: Send + Sync
+    V: Send + Sync,
 {
     /// Creates a new, empty TypeMapV
     ///
@@ -58,7 +58,7 @@ where
     /// ```
     pub fn new() -> Self {
         Self {
-            items: Arc::new(Mutex::new(HashMap::new()))
+            items: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -81,10 +81,11 @@ where
     /// - Returns `MapError::KeyNotFound` if the key doesn't exist
     pub fn get(&self, key: &K) -> Result<V, MapError>
     where
-        V: Clone
+        V: Clone,
     {
         let store = self.items.lock().map_err(|_| MapError::LockError)?;
-        store.get(key)
+        store
+            .get(key)
             .cloned()
             .ok_or_else(|| MapError::KeyNotFound(format!("{:?}", key)))
     }
@@ -131,7 +132,7 @@ where
     /// or any error returned by the provided function.
     pub fn apply<F>(&self, mut f: F) -> Result<(), MapError>
     where
-        F: FnMut(&K, &V) -> Result<(), MapError>
+        F: FnMut(&K, &V) -> Result<(), MapError>,
     {
         let store = self.items.lock().map_err(|_| MapError::LockError)?;
         for (key, value) in store.iter() {
@@ -177,7 +178,7 @@ where
     /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     pub fn keys(&self) -> Result<Vec<K>, MapError>
     where
-        K: Clone
+        K: Clone,
     {
         let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.keys().cloned().collect())
@@ -190,7 +191,7 @@ where
     /// Returns `MapError::LockError` if the internal lock cannot be acquired.
     pub fn values(&self) -> Result<Vec<V>, MapError>
     where
-        V: Clone
+        V: Clone,
     {
         let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.values().cloned().collect())
@@ -200,7 +201,7 @@ where
 impl<K, V> Default for TypeMapV<K, V>
 where
     K: Clone + Eq + Hash + Debug,
-    V: Send + Sync
+    V: Send + Sync,
 {
     fn default() -> Self {
         Self::new()

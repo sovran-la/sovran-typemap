@@ -64,8 +64,14 @@ fn test_keys_and_values() -> Result<(), MapError> {
 fn test_trait_objects() -> Result<(), MapError> {
     let store = TypeMapV::<String, Box<dyn TestHandler>>::new();
 
-    store.set("first".to_string(), Box::new(SimpleHandler("Hello".to_string())))?;
-    store.set("second".to_string(), Box::new(SimpleHandler("World".to_string())))?;
+    store.set(
+        "first".to_string(),
+        Box::new(SimpleHandler("Hello".to_string())),
+    )?;
+    store.set(
+        "second".to_string(),
+        Box::new(SimpleHandler("World".to_string())),
+    )?;
 
     let mut results = Vec::new();
     store.apply(|key, handler| {
@@ -76,10 +82,13 @@ fn test_trait_objects() -> Result<(), MapError> {
 
     // Sort for stable testing
     results.sort();
-    assert_eq!(results, vec![
-        ("first".to_string(), "Hello".to_string()),
-        ("second".to_string(), "World".to_string()),
-    ]);
+    assert_eq!(
+        results,
+        vec![
+            ("first".to_string(), "Hello".to_string()),
+            ("second".to_string(), "World".to_string()),
+        ]
+    );
 
     Ok(())
 }
@@ -116,8 +125,8 @@ fn test_error_handling() {
 
 #[test]
 fn test_thread_safety() -> Result<(), MapError> {
-    use std::thread;
     use std::sync::Arc;
+    use std::thread;
 
     let store = Arc::new(TypeMapV::<String, i32>::new());
     let store2 = Arc::clone(&store);
