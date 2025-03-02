@@ -196,6 +196,94 @@ where
         let store = self.items.lock().map_err(|_| MapError::LockError)?;
         Ok(store.values().cloned().collect())
     }
+
+    /// Gets a value by executing a closure with read access
+    ///
+    /// This method allows you to perform operations on a stored value without
+    /// requiring the value to implement Clone. It's useful for inspecting values
+    /// or computing derived values.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key for the value you want to access
+    /// * `f` - A closure that takes a reference to the value and returns a result
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sovran_typemap::{TypeMapV, MapError};
+    ///
+    /// let store = TypeMapV::<String, Vec<i32>>::new();
+    /// store.set("numbers".to_string(), vec![1, 2, 3])?;
+    ///
+    /// // Get the length without cloning the vector
+    /// let length = store.with(&"numbers".to_string(), |v| v.len())?;
+    /// assert_eq!(length, 3);
+    ///
+    /// // Check if vector contains a value
+    /// let has_two = store.with(&"numbers".to_string(), |v| v.contains(&2))?;
+    /// assert!(has_two);
+    /// # Ok::<(), MapError>(())
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired
+    /// Returns `MapError::KeyNotFound` if the key doesn't exist
+    pub fn with<F, R>(&self, key: &K, f: F) -> Result<R, MapError>
+    where
+        F: FnOnce(&V) -> R,
+    {
+        let store = self.items.lock().map_err(|_| MapError::LockError)?;
+        let value = store.get(key)
+            .ok_or_else(|| MapError::KeyNotFound(format!("{:?}", key)))?;
+        Ok(f(value))
+    }
+
+    /// Gets a value by executing a closure with write access
+    ///
+    /// This method allows you to modify a stored value in place without
+    /// replacing it entirely. It's useful for updating collections or
+    /// complex structures.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key for the value you want to modify
+    /// * `f` - A closure that takes a mutable reference to the value and returns a result
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sovran_typemap::{TypeMapV, MapError};
+    ///
+    /// let store = TypeMapV::<String, Vec<i32>>::new();
+    /// store.set("numbers".to_string(), vec![1, 2, 3])?;
+    ///
+    /// // Modify the vector in place
+    /// let new_len = store.with_mut(&"numbers".to_string(), |v| {
+    ///     v.push(4);
+    ///     v.push(5);
+    ///     v.len()
+    /// })?;
+    ///
+    /// assert_eq!(new_len, 5);
+    /// assert_eq!(store.get(&"numbers".to_string())?, vec![1, 2, 3, 4, 5]);
+    /// # Ok::<(), MapError>(())
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `MapError::LockError` if the internal lock cannot be acquired
+    /// Returns `MapError::KeyNotFound` if the key doesn't exist
+    pub fn with_mut<F, R>(&self, key: &K, f: F) -> Result<R, MapError>
+    where
+        F: FnOnce(&mut V) -> R,
+    {
+        let mut store = self.items.lock().map_err(|_| MapError::LockError)?;
+        let value = store.get_mut(key)
+            .ok_or_else(|| MapError::KeyNotFound(format!("{:?}", key)))?;
+        Ok(f(value))
+    }
 }
 
 impl<K, V> Default for TypeMapV<K, V>

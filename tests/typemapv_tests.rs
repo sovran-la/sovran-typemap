@@ -178,3 +178,49 @@ fn test_default_is_empty() -> Result<(), MapError> {
     assert!(store.is_empty()?);
     Ok(())
 }
+
+#[test]
+fn test_with() -> Result<(), MapError> {
+    let store = TypeMapV::<String, Vec<i32>>::new();
+    store.set("test".to_string(), vec![1, 2, 3])?;
+
+    // Test reading without cloning
+    let length = store.with(&"test".to_string(), |v| v.len())?;
+    assert_eq!(length, 3);
+
+    // Test computing derived value
+    let sum = store.with(&"test".to_string(), |v| v.iter().sum::<i32>())?;
+    assert_eq!(sum, 6);
+
+    // Test key not found
+    let err = store.with(&"nope".to_string(), |_: &Vec<i32>| ());
+    assert!(matches!(err, Err(MapError::KeyNotFound(_))));
+
+    Ok(())
+}
+
+#[test]
+fn test_with_mut() -> Result<(), MapError> {
+    let store = TypeMapV::<String, Vec<i32>>::new();
+    store.set("test".to_string(), vec![1, 2, 3])?;
+
+    // Test modifying in place
+    let new_len = store.with_mut(&"test".to_string(), |v| {
+        v.push(4);
+        v.len()
+    })?;
+    assert_eq!(new_len, 4);
+    assert_eq!(store.get(&"test".to_string())?, vec![1, 2, 3, 4]);
+
+    // Test more complex modification
+    store.with_mut(&"test".to_string(), |v| {
+        v.sort_by(|a, b| b.cmp(a));  // reverse sort
+    })?;
+    assert_eq!(store.get(&"test".to_string())?, vec![4, 3, 2, 1]);
+
+    // Test key not found
+    let err = store.with_mut(&"nope".to_string(), |_: &mut Vec<i32>| ());
+    assert!(matches!(err, Err(MapError::KeyNotFound(_))));
+
+    Ok(())
+}
