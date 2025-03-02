@@ -10,6 +10,7 @@ pub(crate) struct AnyValue {
 impl AnyValue {
     /// Create a new AnyValue from a value of any type that implements Any, Send, and Sync
     pub(crate) fn new<T: 'static + Any + Send + Sync>(value: T) -> Self {
+        println!("Creating AnyValue for type: {:?}", TypeId::of::<T>());
         Self {
             type_id: TypeId::of::<T>(),
             value: Box::new(value),

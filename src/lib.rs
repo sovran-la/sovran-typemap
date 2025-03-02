@@ -216,11 +216,12 @@
 mod any_value;
 mod error;
 mod map;
-mod typed;
+mod traits;
+mod trait_tests;
 
 pub use error::MapError;
 pub use map::TypeMap;
-pub use typed::TypeMapV;
+pub use traits::TraitTypeMap;
 
 // Re-export std::any for convenience
 pub use std::any::{Any, TypeId};
