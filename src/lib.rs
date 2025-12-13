@@ -216,7 +216,6 @@
 mod any_value;
 mod error;
 mod map;
-mod trait_tests;
 mod traits;
 
 pub use error::MapError;
