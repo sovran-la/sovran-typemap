@@ -90,16 +90,21 @@ mod tests {
         let store = TraitTypeMap::<String>::new();
 
         // Store different animals
-        store.set_trait::<dyn Animal, _>("dog".to_string(), Dog {
-            name: "Rover".to_string(),
-            breed: "Golden Retriever".to_string(),
-        })?;
+        store.set_trait::<dyn Animal, _>(
+            "dog".to_string(),
+            Dog {
+                name: "Rover".to_string(),
+                breed: "Golden Retriever".to_string(),
+            },
+        )?;
 
-
-        store.set_trait::<dyn Animal, _>("cat".to_string(), Cat {
-            name: "Whiskers".to_string(),
-            lives: 9,
-        })?;
+        store.set_trait::<dyn Animal, _>(
+            "cat".to_string(),
+            Cat {
+                name: "Whiskers".to_string(),
+                lives: 9,
+            },
+        )?;
 
         // Access via concrete type
         store.with::<Dog, _, _>(&"dog".to_string(), |dog| {
@@ -124,10 +129,13 @@ mod tests {
         let store = TraitTypeMap::<String>::new();
 
         // Store a cat
-        store.set_trait::<dyn Animal, _>("cat".to_string(), Cat {
-            name: "Whiskers".to_string(),
-            lives: 9,
-        })?;
+        store.set_trait::<dyn Animal, _>(
+            "cat".to_string(),
+            Cat {
+                name: "Whiskers".to_string(),
+                lives: 9,
+            },
+        )?;
 
         // Modify via concrete type
         store.with_mut::<Cat, _, _>(&"cat".to_string(), |cat| {
@@ -147,10 +155,15 @@ mod tests {
         let store = TraitTypeMap::<String>::new();
 
         // Store a dog
-        store.set_trait::<dyn Animal, _>("pet".to_string(), Dog {
-            name: "Rover".to_string(),
-            breed: "Golden Retriever".to_string(),
-        }).unwrap();
+        store
+            .set_trait::<dyn Animal, _>(
+                "pet".to_string(),
+                Dog {
+                    name: "Rover".to_string(),
+                    breed: "Golden Retriever".to_string(),
+                },
+            )
+            .unwrap();
 
         // Try to access as wrong type
         match store.with::<Cat, _, _>(&"pet".to_string(), |_| {}) {

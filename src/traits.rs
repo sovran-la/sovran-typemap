@@ -1,10 +1,10 @@
 // src/traits.rs
+use crate::MapError;
 use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use crate::MapError;
 
 pub(crate) struct TypeMapValue {
     concrete_type_id: TypeId,
@@ -49,22 +49,12 @@ where
         T: ?Sized + Any + Send + Sync + 'static,
         U: 'static + Into<Box<T>> + Send + Sync + Clone,
     {
-        println!("\nIn set_trait:");
-        println!("Value type (U): {:?}", TypeId::of::<U>());
-        println!("Trait type (T): {:?}", TypeId::of::<T>());
-
         let type_map_value = TypeMapValue {
             concrete_type_id: TypeId::of::<U>(),
             trait_type_id: TypeId::of::<T>(),
             concrete_value: Box::new(value.clone()),
             trait_object: Box::new(value.into()),
         };
-
-        println!("Created TypeMapValue:");
-        println!("  concrete_type_id: {:?}", type_map_value.concrete_type_id);
-        println!("  trait_type_id: {:?}", type_map_value.trait_type_id);
-        println!("  concrete_value type_id: {:?}", type_map_value.concrete_value.type_id());
-        println!("  trait_object type_id: {:?}", type_map_value.trait_object.type_id());
 
         let mut store = self.items.lock().map_err(|_| MapError::LockError)?;
         store.insert(key, type_map_value);
@@ -79,12 +69,6 @@ where
         let value = guard
             .get(key)
             .ok_or_else(|| MapError::KeyNotFound(format!("{:?}", key)))?;
-
-        println!("\nIn with:");
-        println!("Looking for type_id: {:?}", TypeId::of::<V>());
-        println!("Found value:");
-        println!("  concrete_type_id: {:?}", value.concrete_type_id);
-        println!("  concrete_value type_id: {:?}", value.concrete_value.type_id());
 
         if value.concrete_type_id == TypeId::of::<V>() {
             if let Some(concrete) = value.concrete_value.downcast_ref::<V>() {

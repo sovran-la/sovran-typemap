@@ -174,7 +174,7 @@
 //!
 //!     // Get information from both services
 //!     println!("User count: {}", user_service.get_user_count()?);
-//!     
+//!
 //!     println!("Recent logs:");
 //!     for log in log_service.get_recent_logs(5)? {
 //!         println!("  {}", log);
@@ -216,8 +216,8 @@
 mod any_value;
 mod error;
 mod map;
-mod traits;
 mod trait_tests;
+mod traits;
 
 pub use error::MapError;
 pub use map::TypeMap;
