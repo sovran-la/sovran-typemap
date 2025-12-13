@@ -174,7 +174,7 @@
 //!
 //!     // Get information from both services
 //!     println!("User count: {}", user_service.get_user_count()?);
-//!     
+//!
 //!     println!("Recent logs:");
 //!     for log in log_service.get_recent_logs(5)? {
 //!         println!("  {}", log);
@@ -216,11 +216,13 @@
 mod any_value;
 mod error;
 mod map;
-mod typed;
+mod store;
+mod traits;
 
 pub use error::MapError;
 pub use map::TypeMap;
-pub use typed::TypeMapV;
+pub use store::TypeStore;
+pub use traits::TraitTypeMap;
 
 // Re-export std::any for convenience
 pub use std::any::{Any, TypeId};

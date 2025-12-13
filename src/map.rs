@@ -42,7 +42,7 @@ use crate::error::MapError;
 /// ```
 #[derive(Clone, Debug)]
 pub struct TypeMap<K> {
-    items: Arc<Mutex<HashMap<K, AnyValue>>>,
+    pub(crate) items: Arc<Mutex<HashMap<K, AnyValue>>>,
 }
 
 impl<K> TypeMap<K>
