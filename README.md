@@ -13,11 +13,19 @@ A thread-safe, type-safe heterogeneous container library for Rust.
 - **Type-safe**: Values are checked at runtime to ensure type correctness
 - **Thread-safe**: Built on `Arc<Mutex<_>>` for safe concurrent access
 - **Ergonomic API**: Simple methods with closures for storing, retrieving, and modifying values
-- **Trait Object Support**: Store and access values through trait interfaces via `TraitTypeMap`
+- **Multiple Container Types**: Choose the right container for your use case
 - **Flexible**: Supports any type that implements `Any + Send + Sync` with any hashable key type
 - **Comprehensive Error Handling**: Detailed error types for better debugging and recovery
 - **No macros**: Pure runtime solution without complex macro magic
 - **No Unsafe Code**: Relies entirely on safe Rust with no `unsafe` blocks
+
+## Container Types
+
+| Type | Key | Use Case |
+|------|-----|----------|
+| `TypeMap<K>` | Any hashable type | General-purpose storage with explicit keys |
+| `TypeStore` | Type itself | Service locator / DI container (one value per type) |
+| `TraitTypeMap<K>` | Any hashable type | Polymorphic access via trait interfaces |
 
 ## Installation
 
@@ -28,13 +36,14 @@ Add this to your `Cargo.toml`:
 sovran-typemap = "0.4"
 ```
 
-## Basic Usage
+## TypeMap: Keyed Heterogeneous Storage
+
+`TypeMap` stores values with explicit keys, allowing multiple values of the same type under different keys.
 
 ```rust
 use sovran_typemap::{TypeMap, MapError};
 
 fn main() -> Result<(), MapError> {
-    // Create a new store with string keys
     let store = TypeMap::<String>::new();
 
     // Store values of different types
@@ -61,7 +70,7 @@ fn main() -> Result<(), MapError> {
 }
 ```
 
-## Using with_mut to Modify Values In-Place
+### Modifying Values In-Place
 
 ```rust
 use sovran_typemap::{TypeMap, MapError};
@@ -81,11 +90,6 @@ fn main() -> Result<(), MapError> {
         *visits += 1;
     })?;
 
-    // Add a new counter
-    store.with_mut(&"counters".to_string(), |counters: &mut HashMap<String, i32>| {
-        counters.insert("api_calls".to_string(), 1);
-    })?;
-
     // Read current values
     let visit_count = store.with(&"counters".to_string(), |counters: &HashMap<String, i32>| {
         counters.get("visits").copied().unwrap_or(0)
@@ -97,9 +101,105 @@ fn main() -> Result<(), MapError> {
 }
 ```
 
-## TraitTypeMap: Storing Trait Objects
+## TypeStore: Type-Keyed Storage
 
-`TraitTypeMap` extends the concept to support trait objects. You can store values and access them either by their concrete type or through a trait interface:
+`TypeStore` uses the type itself as the key, storing exactly one value per type. Perfect for dependency injection and service locator patterns.
+
+```rust
+use sovran_typemap::{TypeStore, MapError};
+
+#[derive(Clone, Debug)]
+struct DatabaseConfig {
+    host: String,
+    port: u16,
+}
+
+#[derive(Clone, Debug)]
+struct AppConfig {
+    name: String,
+    debug: bool,
+}
+
+fn main() -> Result<(), MapError> {
+    let store = TypeStore::new();
+
+    // Store configurations - type IS the key
+    store.set(DatabaseConfig {
+        host: "localhost".to_string(),
+        port: 5432,
+    })?;
+
+    store.set(AppConfig {
+        name: "MyApp".to_string(),
+        debug: true,
+    })?;
+
+    // Retrieve by type alone - no key needed
+    let db = store.get::<DatabaseConfig>()?;
+    println!("Database: {}:{}", db.host, db.port);
+
+    // Modify in place
+    store.with_mut::<AppConfig, _, _>(|cfg| {
+        cfg.debug = false;
+    })?;
+
+    // Check existence by type
+    if store.contains::<DatabaseConfig>()? {
+        println!("Database config is registered");
+    }
+
+    // Remove by type
+    store.remove::<AppConfig>()?;
+
+    Ok(())
+}
+```
+
+### Service Locator Pattern
+
+```rust
+use sovran_typemap::{TypeStore, MapError};
+use std::sync::Arc;
+
+struct Logger { prefix: String }
+struct UserService { services: Arc<TypeStore> }
+
+impl Logger {
+    fn log(&self, msg: &str) {
+        println!("[{}] {}", self.prefix, msg);
+    }
+}
+
+impl UserService {
+    fn new(services: Arc<TypeStore>) -> Self {
+        Self { services }
+    }
+
+    fn create_user(&self, name: &str) -> Result<(), MapError> {
+        // Access dependencies from the container
+        self.services.with::<Logger, _, _>(|logger| {
+            logger.log(&format!("Creating user: {}", name));
+        })
+    }
+}
+
+fn main() -> Result<(), MapError> {
+    let services = Arc::new(TypeStore::new());
+    
+    // Register services
+    services.set(Logger { prefix: "app".to_string() })?;
+    
+    // Create components with injected dependencies
+    let user_service = UserService::new(Arc::clone(&services));
+    user_service.create_user("alice")?;
+    
+    Ok(())
+}
+```
+
+## TraitTypeMap: Polymorphic Access
+
+`TraitTypeMap` lets you store values and access them either by concrete type or through a trait interface:
 
 ```rust
 use sovran_typemap::{TraitTypeMap, MapError};
@@ -111,14 +211,11 @@ trait Animal: Any + Send + Sync {
 }
 
 #[derive(Clone)]
-struct Dog {
-    name: String,
-    breed: String,
-}
+struct Dog { name: String, breed: String }
 
 impl Dog {
     fn wag_tail(&self) -> String {
-        format!("{} wags tail happily!", self.name)
+        format!("{} wags tail!", self.name)
     }
 }
 
@@ -128,32 +225,8 @@ impl Animal for Dog {
     }
 }
 
-// Required: implement Into<Box<dyn Trait>> for your concrete type
+// Required: implement Into<Box<dyn Trait>> for your type
 impl Into<Box<dyn Animal>> for Dog {
-    fn into(self) -> Box<dyn Animal> {
-        Box::new(self)
-    }
-}
-
-#[derive(Clone)]
-struct Cat {
-    name: String,
-    lives: u8,
-}
-
-impl Cat {
-    fn purr(&self) -> String {
-        format!("{} purrs contentedly", self.name)
-    }
-}
-
-impl Animal for Cat {
-    fn make_sound(&self) -> String {
-        format!("{} says: Meow!", self.name)
-    }
-}
-
-impl Into<Box<dyn Animal>> for Cat {
     fn into(self) -> Box<dyn Animal> {
         Box::new(self)
     }
@@ -162,15 +235,9 @@ impl Into<Box<dyn Animal>> for Cat {
 fn main() -> Result<(), MapError> {
     let store = TraitTypeMap::<String>::new();
 
-    // Store animals with their trait type specified
     store.set_trait::<dyn Animal, _>("dog".to_string(), Dog {
         name: "Rover".to_string(),
         breed: "Golden Retriever".to_string(),
-    })?;
-
-    store.set_trait::<dyn Animal, _>("cat".to_string(), Cat {
-        name: "Whiskers".to_string(),
-        lives: 9,
     })?;
 
     // Access via concrete type - get type-specific methods
@@ -179,41 +246,28 @@ fn main() -> Result<(), MapError> {
         println!("{}", dog.wag_tail());
     })?;
 
-    store.with::<Cat, _, _>(&"cat".to_string(), |cat| {
-        println!("Lives remaining: {}", cat.lives);
-        println!("{}", cat.purr());
-    })?;
-
     // Access via trait interface - polymorphic access
     store.with_trait::<dyn Animal, _, _>(&"dog".to_string(), |animal| {
         println!("{}", animal.make_sound());
-    })?;
-
-    store.with_trait::<dyn Animal, _, _>(&"cat".to_string(), |animal| {
-        println!("{}", animal.make_sound());
-    })?;
-
-    // Mutable access to concrete type
-    store.with_mut::<Cat, _, _>(&"cat".to_string(), |cat| {
-        cat.lives -= 1; // Uh oh, curiosity...
     })?;
 
     Ok(())
 }
 ```
 
-### When to Use Each Type
+## Choosing a Container
 
-- **`TypeMap`**: When you only need to store and retrieve values by their concrete types. Simpler API, less boilerplate.
+- **`TypeMap<K>`**: When you need multiple values of the same type with different keys. General-purpose heterogeneous storage.
 
-- **`TraitTypeMap`**: When you need polymorphic access to stored values through trait interfaces, or when you want to iterate over heterogeneous collections through a common trait.
+- **`TypeStore`**: When type uniquely identifies the value. Dependency injection, configuration objects, service locators.
+
+- **`TraitTypeMap<K>`**: When you need polymorphic access through trait interfaces, or want to iterate over values through a common trait.
 
 ## Sharing State Between Components
 
 ```rust
 use sovran_typemap::{TypeMap, MapError};
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 struct UserService {
     store: Arc<TypeMap<String>>,
@@ -228,79 +282,26 @@ impl UserService {
         Self { store }
     }
 
-    fn get_user_count(&self) -> Result<usize, MapError> {
-        self.store.with(&"users".to_string(), |users: &Vec<String>| {
-            users.len()
-        })
-    }
-
     fn add_user(&self, username: String) -> Result<(), MapError> {
-        // Initialize users vector if it doesn't exist yet
         if !self.store.contains_key(&"users".to_string())? {
             self.store.set("users".to_string(), Vec::<String>::new())?;
         }
-
-        // Add a user
         self.store.with_mut(&"users".to_string(), |users: &mut Vec<String>| {
             users.push(username);
         })
     }
 }
 
-impl LogService {
-    fn new(store: Arc<TypeMap<String>>) -> Self {
-        Self { store }
-    }
-
-    fn log(&self, message: String) -> Result<(), MapError> {
-        // Initialize logs if they don't exist
-        if !self.store.contains_key(&"logs".to_string())? {
-            self.store.set("logs".to_string(), Vec::<String>::new())?;
-        }
-
-        // Add log entry with timestamp
-        self.store.with_mut(&"logs".to_string(), |logs: &mut Vec<String>| {
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-            logs.push(format!("[{}] {}", now, message));
-        })
-    }
-
-    fn get_recent_logs(&self, count: usize) -> Result<Vec<String>, MapError> {
-        self.store.with(&"logs".to_string(), |logs: &Vec<String>| {
-            logs.iter()
-               .rev()
-               .take(count)
-               .cloned()
-               .collect()
-        })
-    }
-}
-
 fn main() -> Result<(), MapError> {
-    // Create a shared store
     let store = Arc::new(TypeMap::<String>::new());
 
-    // Create services that share the store
     let user_service = UserService::new(Arc::clone(&store));
-    let log_service = LogService::new(Arc::clone(&store));
-
-    // Use the services
     user_service.add_user("alice".to_string())?;
-    log_service.log("User alice added".to_string())?;
-
     user_service.add_user("bob".to_string())?;
-    log_service.log("User bob added".to_string())?;
 
-    // Get information from both services
-    println!("User count: {}", user_service.get_user_count()?);
-    
-    println!("Recent logs:");
-    for log in log_service.get_recent_logs(5)? {
-        println!("  {}", log);
-    }
+    store.with(&"users".to_string(), |users: &Vec<String>| {
+        println!("Users: {:?}", users);
+    })?;
 
     Ok(())
 }
@@ -308,45 +309,31 @@ fn main() -> Result<(), MapError> {
 
 ## Error Handling
 
-The library provides detailed error types to help with error handling:
-
 ```rust
-use sovran_typemap::{TypeMap, MapError};
+use sovran_typemap::{TypeStore, MapError};
 
 fn main() {
-    let store = TypeMap::<String>::new();
+    let store = TypeStore::new();
 
-    // Set a value for demonstration
-    if let Err(e) = store.set("config".to_string(), vec!["setting1", "setting2"]) {
-        eprintln!("Failed to store config: {}", e);
-        return;
-    }
-
-    // Try to get a value with the wrong type
-    match store.get::<String>(&"config".to_string()) {
-        Ok(value) => println!("Config: {}", value),
-        Err(MapError::KeyNotFound(_)) => println!("Config key not found"),
-        Err(MapError::TypeMismatch) => println!("Config is not a String"),
+    match store.get::<String>() {
+        Ok(value) => println!("Value: {}", value),
+        Err(MapError::KeyNotFound(type_name)) => {
+            println!("No value of type: {}", type_name)
+        }
+        Err(MapError::TypeMismatch) => println!("Type mismatch"),
         Err(MapError::LockError) => println!("Failed to acquire lock"),
-    }
-
-    // Try to access a non-existent key
-    match store.get::<i32>(&"settings".to_string()) {
-        Ok(value) => println!("Setting: {}", value),
-        Err(MapError::KeyNotFound(_)) => println!("Settings key not found"),
-        Err(e) => println!("Other error: {}", e),
     }
 }
 ```
 
-## Available Methods
+## API Reference
 
-### TypeMap
+### TypeMap<K>
 
 | Method | Description |
 |--------|-------------|
 | `new()` | Create a new empty TypeMap |
-| `set(key, value)` | Store a value of any type |
+| `set(key, value)` | Store a value with a key |
 | `set_with(key, closure)` | Store a value generated by a closure |
 | `get<T>(key)` | Get a clone of a value |
 | `with<T, F, R>(key, closure)` | Access a value with a read-only closure |
@@ -358,15 +345,35 @@ fn main() {
 | `len()` | Get the number of items |
 | `is_empty()` | Check if the store is empty |
 
-### TraitTypeMap
+### TypeStore
+
+| Method | Description |
+|--------|-------------|
+| `new()` | Create a new empty TypeStore |
+| `set(value)` | Store a value (type is the key) |
+| `set_with(closure)` | Store a value generated by a closure |
+| `get<T>()` | Get a clone of a value by type |
+| `with<T, F, R>(closure)` | Access a value with a read-only closure |
+| `with_mut<T, F, R>(closure)` | Access a value with a read-write closure |
+| `remove<T>()` | Remove a value by type |
+| `contains<T>()` | Check if a type exists |
+| `len()` | Get the number of items |
+| `is_empty()` | Check if the store is empty |
+
+### TraitTypeMap<K>
 
 | Method | Description |
 |--------|-------------|
 | `new()` | Create a new empty TraitTypeMap |
 | `set_trait<T, U>(key, value)` | Store a value with its trait type |
-| `with<T, F, R>(key, closure)` | Access a value by concrete type (read-only) |
-| `with_mut<T, F, R>(key, closure)` | Access a value by concrete type (read-write) |
-| `with_trait<T, F, R>(key, closure)` | Access a value through its trait interface |
+| `with<T, F, R>(key, closure)` | Access by concrete type (read-only) |
+| `with_mut<T, F, R>(key, closure)` | Access by concrete type (read-write) |
+| `with_trait<T, F, R>(key, closure)` | Access through trait interface |
+| `remove(key)` | Remove a value |
+| `contains_key(key)` | Check if a key exists |
+| `keys()` | Get all keys |
+| `len()` | Get the number of items |
+| `is_empty()` | Check if the store is empty |
 
 ## License
 

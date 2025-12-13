@@ -216,10 +216,12 @@
 mod any_value;
 mod error;
 mod map;
+mod store;
 mod traits;
 
 pub use error::MapError;
 pub use map::TypeMap;
+pub use store::TypeStore;
 pub use traits::TraitTypeMap;
 
 // Re-export std::any for convenience
