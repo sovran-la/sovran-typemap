@@ -78,7 +78,7 @@
 //! #[derive(Clone, Debug)]
 //! struct GameState { level: u32, score: u64 }
 //!
-//! fn main() {
+//! fn main() -> Result<(), MapError> {
 //!     let mut state = TypeStoreValue::new();
 //!     state.set(GameState { level: 1, score: 0 });
 //!
@@ -91,6 +91,8 @@
 //!     // Snapshot unchanged
 //!     assert_eq!(snapshot.get::<GameState>().unwrap().level, 1);
 //!     assert_eq!(state.get::<GameState>().unwrap().level, 2);
+//!
+//!     Ok(())
 //! }
 //! ```
 //!
