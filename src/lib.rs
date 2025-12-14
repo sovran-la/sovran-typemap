@@ -78,7 +78,7 @@
 //! #[derive(Clone, Debug)]
 //! struct GameState { level: u32, score: u64 }
 //!
-//! fn main() -> Result<(), MapError> {
+//! fn main() -> Result<(), ()> {
 //!     let mut state = TypeStoreValue::new();
 //!     state.set(GameState { level: 1, score: 0 });
 //!
